@@ -4,6 +4,12 @@ import torch
 import matplotlib.pyplot as plt
 import shutil
 
+from skimage.metrics import structural_similarity as ssim
+from skimage.metrics import mean_squared_error as mse
+from skimage.metrics import peak_signal_noise_ratio as psnr
+from skimage.metrics import normalized_root_mse as nrmse
+
+
 def create_initial_directories(opt):
     os.makedirs("images/%s" % opt.dataset_name, exist_ok=True)
     os.makedirs("images/%s/loss_plots" % opt.dataset_name, exist_ok=True)
@@ -23,6 +29,16 @@ def print_log(logger, message, opt, batches_done = -1):
         print(message, flush=True)
     if logger:
         logger.write(str(message) + '\n')
+        
+
+def calculate_metrics(target, pred):
+    a = 0
+    range = (pred[a, :, :]).max() - (pred[a, :, :]).min()
+    ssim_val = ssim(target[a, :, :], pred[a, :, :], data_range= range)
+    psnr_val = psnr(target[a, :, :], pred[a, :, :], data_range= range)
+    mse_val = mse(target[a, :, :], pred[a, :, :])
+    nrmse_val = nrmse(target[a, :, :], pred[a, :, :]) 
+    return ssim_val, psnr_val, mse_val, nrmse_val 
 
 def draw_loss(G_loss, D_loss, epoch, name):
     plt.plot(G_loss, '-b', label='G_loss')

@@ -22,7 +22,7 @@ def to_image(image, slope=0.0641, intercept=-1200, window_length=100, window_cen
     img[img > high_lim] = high_lim
     #map the image values to file format specifications
     img = (img - low_lim) * 255 / (high_lim - low_lim)
-    img = img.astype(np.uint8)
+    #img = img.astype(np.uint8)
     return img
     
 mylist = [f for f in glob.glob("*.dcm")]
