@@ -29,15 +29,14 @@ def print_log(logger, message, opt, batches_done = -1):
         print(message, flush=True)
     if logger:
         logger.write(str(message) + '\n')
-        
+      
 
 def calculate_metrics(target, pred):
-    a = 0
-    range = (pred[a, :, :]).max() - (pred[a, :, :]).min()
-    ssim_val = ssim(target[a, :, :], pred[a, :, :], data_range= range)
-    psnr_val = psnr(target[a, :, :], pred[a, :, :], data_range= range)
-    mse_val = mse(target[a, :, :], pred[a, :, :])
-    nrmse_val = nrmse(target[a, :, :], pred[a, :, :]) 
+    range = 1
+    ssim_val = ssim(target, pred, data_range= range)
+    psnr_val = psnr(target, pred, data_range= range)
+    mse_val = mse(target, pred)
+    nrmse_val = nrmse(target, pred) 
     return ssim_val, psnr_val, mse_val, nrmse_val 
 
 def draw_loss(G_loss, D_loss, epoch, name):
