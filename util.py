@@ -51,6 +51,23 @@ def draw_loss(G_loss, D_loss, epoch, name):
 
     # save image
     plt.savefig(name + ".png")
+    plt.close()
+
+def draw_metrics(ssim, psnr, nrmse, mse, epoch, name):
+    plt.plot(ssim, '-b', label='SSIM')
+    plt.plot(psnr, '-r', label='PSNR')
+    plt.plot(mse, '-g', label='MSE')
+    plt.plot(nrmse, '-k', label='NRMSE')
+
+    plt.xlabel("Epoch")
+    plt.title("Metrics plot")
+
+    if not epoch:
+        plt.legend(loc='upper right')
+
+    # save image
+    plt.savefig(name + ".png")
+    plt.close()
 
 def create_folder(name): 
     if os.path.exists(name):

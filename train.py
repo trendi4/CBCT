@@ -10,7 +10,7 @@ import torch
 
 from model import *
 from dataset import *
-from util import create_initial_directories, draw_loss, sample_images, print_log
+from util import create_initial_directories, draw_loss, draw_metrics, sample_images, print_log, calculate_metrics
 
 
 
@@ -41,6 +41,7 @@ parser.add_argument("--channels", type=int, default=1, help="number of image cha
 parser.add_argument("--sample_interval", type=int, default=500, help="interval between sampling of images from generators")
 parser.add_argument("--print_interval", type=int, default=1, help="interval between sampling of images from generators")
 parser.add_argument("--checkpoint_interval", type=int, default=5, help="interval between model checkpoints")
+parser.add_argument("--validate_interval", type=int, default=1, help="interval between model validations")
 
 opt = parser.parse_args()
 print(opt)
@@ -230,6 +231,51 @@ if __name__ == "__main__":
             torch.save(generator.state_dict(), "saved_models/%s/generator_%d.pth" % (opt.dataset_name, epoch+1))
             torch.save(discriminator.state_dict(), "saved_models/%s/discriminator_%d.pth" % (opt.dataset_name, epoch+1))
         
+        if epoch % opt.validate_interval == 0:
+            generator.eval()
+
+            running_ssim = []
+            running_psnr = []
+            running_mse = []
+            running_nrmse = []    
+
+            with torch.no_grad():
+                for ii, val_batch in enumerate(val_dataloader):
+                    input = val_batch[0].to(device)
+                    target = val_batch[1].to(device)
+
+                    name = batch[2][0].split('\\')[-1]
+                    pred = generator(input)
+                    target_img = target[:, 0, :, :].cpu().detach().numpy()
+                    pred_img = pred[:, 0, :, :].cpu().detach().numpy()
+
+                    #for a in range(opt.batch_size):
+                    metrics_pred = calculate_metrics(target_img[0], pred_img[0])
+                    
+                    running_ssim.append(metrics_pred[0])
+                    running_psnr.append(metrics_pred[1])
+                    running_mse.append(metrics_pred[2])
+                    running_nrmse.append(metrics_pred[3])
+
+                str_log_validate = (
+                    "Validation mettrics for epoch %s: [SSIM %f +/- %f] [PSNR: %f +/- %f] [MSE: %f +/- %f] [NRMSE: %f +/- %f]"
+                    % (
+                        epoch+1,
+                        sum(running_ssim)/len(dataloader.dataset), np.std(running_ssim),
+                        sum(running_psnr)/len(dataloader.dataset), np.std(running_psnr),
+                        sum(running_mse)/len(dataloader.dataset), np.std(running_mse),
+                        sum(running_nrmse)/len(dataloader.dataset), np.std(running_nrmse)
+                    )
+                )
+
+                print_log(logger, "___________________________________________", opt, 1)
+                print_log(logger, str_log_validate, opt, 1)
+                print_log(logger, "___________________________________________", opt, 1)
+
+                draw_metrics(sum(running_ssim)/len(dataloader.dataset), sum(running_psnr)/len(dataloader.dataset), sum(running_mse)/len(dataloader.dataset), sum(running_nrmse)/len(dataloader.dataset), epoch, "images/%s/loss_plots/metrics_epoch-%d" % (opt.dataset_name, epoch+1) )
+
+
+
         values_loss_D.append(running_loss_D)
         values_loss_G.append(running_loss_G)
         draw_loss(values_loss_G, values_loss_D, epoch, "images/%s/loss_plots/loss_epoch-%d" % (opt.dataset_name, epoch+1))

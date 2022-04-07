@@ -30,6 +30,7 @@ class ImageDataset(Dataset):
     def __getitem__(self, index):
 
         #img = Image.open(self.files[index % len(self.files)])
+        file_name = self.files_input[index % len(self.files_input)]
         img_input = np.load(self.files_input[index % len(self.files_input)])
         img_target = np.load(self.files_target[index % len(self.files_target)])
         
@@ -43,7 +44,12 @@ class ImageDataset(Dataset):
         torch.manual_seed(seed)
         img_target = self.transform(img_target)
 
-        return img_input, img_target
+        return img_input, img_target, file_name
 
     def __len__(self):
         return len(self.files_input)
+
+    def get_file_names(self, mode="input"):
+        if mode == "target":
+            return self.files_target
+        return self.files_input

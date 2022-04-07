@@ -89,15 +89,15 @@ if __name__ == "__main__":
 
         generator.load_state_dict(torch.load(file))
 
-        running_ssim = 0.0
-        running_psnr = 0.0
-        running_mse = 0.0
-        running_nrmse = 0.0        
+        running_ssim = []
+        running_psnr = []
+        running_mse = []
+        running_nrmse = []    
         
-        input_running_ssim = 0.0
-        input_running_psnr = 0.0
-        input_running_mse = 0.0
-        input_running_nrmse = 0.0
+        input_running_ssim = []
+        input_running_psnr = []
+        input_running_mse = []
+        input_running_nrmse = []
 
         #DOnt do running values, just add metric values to a list for each batch and then do mean std deviation.
 
@@ -117,6 +117,8 @@ if __name__ == "__main__":
                 # Model inputs
                 input = batch[0].to(device)
                 target = batch[1].to(device)
+                
+                name = batch[2][0].split('\\')[-1]
 
                 pred = generator(input)
                 input_img = input[:, 0, :, :].cpu().detach().numpy()
@@ -124,47 +126,61 @@ if __name__ == "__main__":
                 pred_img = pred[:, 0, :, :].cpu().detach().numpy()
 
                 #for a in range(opt.batch_size):
-                metrics_pred = calculate_metrics(target_img, pred_img)
-                metrics_input = calculate_metrics(target_img, input_img)
+                metrics_pred = calculate_metrics(target_img[0], pred_img[0])
+                metrics_input = calculate_metrics(target_img[0], input_img[0])
                 
-                running_ssim += metrics_pred[0]
-                running_psnr += metrics_pred[1]
-                running_mse += metrics_pred[2]
-                running_nrmse += metrics_pred[3]
+                running_ssim.append(metrics_pred[0])
+                running_psnr.append(metrics_pred[1])
+                running_mse.append(metrics_pred[2])
+                running_nrmse.append(metrics_pred[3])
 
-                input_running_ssim += metrics_input[0]
-                input_running_psnr += metrics_input[1]
-                input_running_mse += metrics_input[2]
-                input_running_nrmse += metrics_input[3]
+                input_running_ssim.append(metrics_input[0])
+                input_running_psnr.append(metrics_input[1])
+                input_running_mse.append(metrics_input[2])
+                input_running_nrmse.append(metrics_input[3])
 
                 img_sample = torch.cat((input.data, pred.data, target.data, pred.data - input.data, pred.data - target.data), -2)
-                save_image(img_sample, "images/%s/%s/val_%s.png" % (opt.dataset_name, "epoch" + split[:-4], i), nrow=5, normalize=True)
+                save_image(img_sample, "images/%s/%s/%s-corrected.png" % (opt.dataset_name, "epoch" + split[:-4], name[:-4]), nrow=5, normalize=True)
 
                 if opt.save_npy:
-                    np.save("images/%s/npy/epoch-%s/batch-%d" % (opt.dataset_name, split[:-4], i), pred_img)
+                    np.save("images/%s/npy/epoch-%s/%s-corrected" % (opt.dataset_name, split[:-4], name[:-4]), pred_img)
+
+                str_log_batch = (
+                "Individual metrics for %s: \r[Generator epoch %s] [SSIM %f] [PSNR: %f] [MSE: %f] [NRMSE: %f]"
+                % (
+                    name,
+                    split[:-4],
+                    metrics_pred[0],
+                    metrics_pred[1],
+                    metrics_pred[2],
+                    metrics_pred[3]
+                    )
+                )
+
+                print_log(logger, str_log_batch, opt)
 
             str_log_validate = (
-                "Metrics for the prediction: \r[Generator epoch %s] [SSIM %f] [PSNR: %f] [MSE: %f] [NRMSE: %f]"
+                "Metrics for the prediction: \r[Generator epoch %s] [SSIM %f +/- %f] [PSNR: %f +/- %f] [MSE: %f +/- %f] [NRMSE: %f +/- %f]"
                 % (
                     split[:-4],
-                    running_ssim/len(dataloader.dataset),
-                    running_psnr/len(dataloader.dataset),
-                    running_mse/len(dataloader.dataset),
-                    running_nrmse/len(dataloader.dataset)
+                    sum(running_ssim)/len(dataloader.dataset), np.std(running_ssim),
+                    sum(running_psnr)/len(dataloader.dataset), np.std(running_psnr),
+                    sum(running_mse)/len(dataloader.dataset), np.std(running_mse),
+                    sum(running_nrmse)/len(dataloader.dataset), np.std(running_nrmse)
                 )
             )
 
             str_log_input = (
-                "Metrics for the input: \r[Generator epoch %s] [SSIM %f] [PSNR: %f] [MSE: %f] [NRMSE: %f]"
+                "Metrics for the prediction: \r[Generator epoch %s] [SSIM %f +/- %f] [PSNR: %f +/- %f] [MSE: %f +/- %f] [NRMSE: %f +/- %f]"
                 % (
                     split[:-4],
-                    input_running_ssim/len(dataloader.dataset),
-                    input_running_psnr/len(dataloader.dataset),
-                    input_running_mse/len(dataloader.dataset),
-                    input_running_nrmse/len(dataloader.dataset)
+                    sum(input_running_ssim)/len(dataloader.dataset), np.std(input_running_ssim),
+                    sum(input_running_psnr)/len(dataloader.dataset), np.std(input_running_psnr),
+                    sum(input_running_mse)/len(dataloader.dataset), np.std(input_running_mse),
+                    sum(input_running_nrmse)/len(dataloader.dataset), np.std(input_running_nrmse)
                 )
             )
-
+            print_log(logger, "___________________________________________", opt, 1)
             print_log(logger, str_log_input, opt, 1)
             print_log(logger, str_log_validate, opt, 1)
             print_log(logger, "___________________________________________", opt, 1)
