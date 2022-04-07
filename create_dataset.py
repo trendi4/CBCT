@@ -29,10 +29,10 @@ def to_image(image, slope=0.0641, intercept=-1200, window_length=100, window_cen
     #img = img.astype(np.uint8)
     return img
     
-mylist = [f for f in glob.glob("*.dcm")]
+mylist = [f for f in glob.glob(os.path.join(opt.dir, "*.dcm"))]
 
 create_folder("input", opt.dir)
-create_folder("target_full", opt.dir)
+create_folder("target", opt.dir)
 create_folder("target_noise", opt.dir)
 
 for i in range(len(mylist)):
@@ -42,22 +42,24 @@ for i in range(len(mylist)):
     pixel_array_numpy = ds.pixel_array
     #set file name of the file selected
     name = mylist[i][:-4]
+    name= name[5:]
     #create folder with the name of the file
     #create_folder(name)
     #change to that directory path
     #os.chdir(name)
 
     if "sub2" in name:
-        os.chdir("input")
+        os.chdir(os.path.join(opt.dir,"input"))
     elif "oise" in name:
-        os.chdir("target_noise")
+        os.chdir(os.path.join(opt.dir,"target_noise"))
     else:
-        os.chdir("target_full")
+        os.chdir(os.path.join(opt.dir,"target"))
 
     for ii in range(pixel_array_numpy.shape[0]):
         img = to_image(pixel_array_numpy[ii,:,:])
         #cv2.imwrite(name + "_" + str(i) + ".bmp", img)
         np.save(name + "_" + str(ii) + ".npy", img)
+    os.chdir("..")
     os.chdir("..")
     
     

@@ -86,7 +86,8 @@ else:
 optimizer_G = torch.optim.Adam(generator.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
 optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=opt.lr, betas=(opt.b1, opt.b2))
 
-
+scheduler1 = torch.optim.lr_scheduler.StepLR(optimizer_G, step_size=opt.decay_epoch, gamma=0.5)
+scheduler2 = torch.optim.lr_scheduler.StepLR(optimizer_D, step_size=opt.decay_epoch, gamma=0.5)
 train_transforms_ = [
     transforms.ToTensor(),
     transforms.Normalize(0.5, 0.5),
@@ -274,7 +275,8 @@ if __name__ == "__main__":
 
                 draw_metrics(sum(running_ssim)/len(dataloader.dataset), sum(running_psnr)/len(dataloader.dataset), sum(running_mse)/len(dataloader.dataset), sum(running_nrmse)/len(dataloader.dataset), epoch, "images/%s/loss_plots/metrics_epoch-%d" % (opt.dataset_name, epoch+1) )
 
-
+        scheduler1.step()
+        scheduler2.step()
 
         values_loss_D.append(running_loss_D)
         values_loss_G.append(running_loss_G)
